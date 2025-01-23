@@ -1,34 +1,49 @@
 "use client"; // If using the app directory in Next.js
 
 import React, { useEffect, useState } from "react";
-import { getDatabase, ref, set, push, onValue, get, update, remove } from "firebase/database";
+import {  ref, set, push, onValue,  update, remove } from "firebase/database";
 import { database } from "../../firebase/config"; // Import your Firebase configuration
 import Modal from "../../component/modal";
+import SelectUser from "../../component/SelectComponent";
 
-export default function schedule() {
-    const [data, setData] = useState([]); // Store fetched data
+interface Schedule {
+    id: string;
+    [key: string]: any; // Adjust to reflect the structure of your user data
+}
+
+const options = [
+    { value: 'chocolate', label: 'Chocolate' },
+    { value: 'strawberry', label: 'Strawberry' },
+    { value: 'vanilla', label: 'Vanilla' }
+  ]
+export default function Schedule() {
+    const [data, setData] = useState<Schedule[]>([]); // Store fetched data
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         // Real-time listener to fetch data from the "users" node
         const usersRef = ref(database, "users");
 
-        onValue(usersRef, (snapshot) => {
+        const unsubscribe = onValue(usersRef, (snapshot) => {
             if (snapshot.exists()) {
-                const fetchedData = snapshot.val();
-                const formattedData = Object.entries(fetchedData).map(([id, value]) => ({
+                const fetchedData = snapshot.val() as Record<string, any>; // Ensure type safety
+                const formattedData: Schedule[] = Object.entries(fetchedData).map(([id, value]) => ({
                     id,
                     ...value,
-                })); // Format data to include IDs
+                }));
+                console.log(formattedData)
                 setData(formattedData);
-                setLoading(false);
             } else {
                 console.log("No data available.");
                 setData([]);
-                setLoading(false);
             }
+            setLoading(false);
         });
+
+        // Cleanup listener on component unmount
+        return () => unsubscribe();
     }, []);
+
 
     // Create a new user
     async function createUser() {
@@ -79,7 +94,6 @@ export default function schedule() {
             <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
 
                 <button className="px-3 py-2 text-xs font-medium text-center text-white bg-green-700 rounded-lg hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" onClick={openModal}>Add</button>
-
 
                 <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                     <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
@@ -164,35 +178,40 @@ export default function schedule() {
 
                 <Modal title={'Add For Schedule'} isOpen={isModalOpen} onClose={closeModal}>
                     <form className="max-w-md mx-auto">
-                        <div className="relative z-0 w-full mb-5 group">
-                            <input type="email" name="floating_email" id="floating_email" className="input-email peer" placeholder=" " required />
-                            <label htmlFor="floating_email" className="label-email">Email address</label>
+                    <div className="relative  w-full mb-5 group bg-black ">
+                        <SelectUser
+                                options={[
+                                    { value: 'john.doe@example.com', label: 'john.doe@example.com' },
+                                    { value: 'ohn.doe@example.com', label: 'ohn.doe@example.com' },
+                                    ]}
+                                    placeholder={'Select Email'}
+                                    label ={'Email'}
+                            />
                         </div>
 
-                        <div className="relative z-0 w-full mb-5 group bg-black">
-                            <select
-                                name="floating_type"
-                                id="floating_type"
-                                className="input-text peer appearance-none bg-black"
-                                required
-                            >
-                                <option value="" disabled defaultValue>
-                                    Select Type
-                                </option>
-                                <option value="resto">Resto</option>
-                                <option value="prothos">PROTHOS</option>
-                            </select>
-                            <label htmlFor="floating_type" className="label-text">
-                                Type
-                            </label>
+                        <div className="relative  w-full mb-5 group bg-black ">
+                            <SelectUser
+                                options={[
+                                    { value: 'Resto', label: 'Resto' },
+                                    { value: 'PROSTHO', label: 'PROSTHO' },
+                                    ]}
+                                    placeholder={'Select Type'}
+                                    label ={'Form Type'}
+                            />
                         </div>
                         <div className="relative z-0 w-full mb-5 group">
-                            <input type="text" name="floating_last_name" id="floating_last_name" className="input-text peer" placeholder=" " required />
-                            <label htmlFor="floating_last_name" className="label-text">Schedule day and time</label>
+                            <SelectUser
+                                options={[
+                                    { value: 'Monday AM', label: 'Monday AM' },
+                                    { value: 'TUESDAY AM', label: 'TUESDAY AM' },
+                                    ]}
+                                    placeholder={'Select Schedule day and time'}
+                                    label ={'Form Type Schedule day and time'}
+                            />
                         </div>
 
                         <div className="relative z-0 w-full mb-5 group">
-                            <input type="text" name="floating_last_name" id="floating_last_name" className="input-text peer" placeholder=" " required />
+                            <input type="text" name="floating_last_name" id="floating_last_name" className="input-text peer" placeholder=" " disabled />
                             <label htmlFor="floating_last_name" className="label-text">Clinician</label>
                         </div>
                         <div className="relative z-0 w-full mb-5 group">
