@@ -7,35 +7,35 @@ import Modal from "../../component/modal";
 import SelectComponent from "../../component/SelectComponent";
 import FloatingInput from "@/app/component/textInput";
 
-interface Link {
+interface Users {
     id: string;
-    [key: string]: any; // Adjust to reflect the structure of your link data
+    [key: string]: any; // Adjust to reflect the structure of your user data
 }
 
-export default function Link() {
-    const [data, setData] = useState<Link[]>([]); // Store fetched data
-    const [filteredData, setFilteredData] = useState<Link[]>([]); // Store filtered data for the search
+export default function Users() {
+    const [data, setData] = useState<Users[]>([]); // Store fetched data
+    const [filteredData, setFilteredData] = useState<Users[]>([]); // Store filtered data for the search
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState(""); // Search query state
 
     const [isModalOpen, setModalOpen] = useState(false); // For Add Modal
     const [isUpdateModalOpen, setUpdateModalOpen] = useState(false); // For Update Modal
-    const [schedule, setSchedule] = useState(""); // Store schedule day and time
-    const [link, setLink] = useState(""); // Store link
+    const [Clinician, setSchedule] = useState(""); // Store Clinician day and time
+    const [email, setLink] = useState(""); // Store email
     const [selectedStatus, setSelectedStatus] = useState<string | string[] | null>(null);
-    const [selectedType, setSelectedType] = useState<string | string[] | null>(null);
+    // const [selectedType, setSelectedType] = useState<string | string[] | null>(null);
 
     const [selectedId, setSelectedIdStatus] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
 
-    const dbRef = ref(database, "links");
+    const dbRef = ref(database, "users");
 
 
     useEffect(() => {
         const readData = onValue(dbRef, (snapshot) => {
             if (snapshot.exists()) {
                 const fetchedData = snapshot.val() as Record<string, any>;
-                const formattedData: Link[] = Object.entries(fetchedData).map(([id, value]) => ({
+                const formattedData: Users[] = Object.entries(fetchedData).map(([id, value]) => ({
                     id,
                     ...value,
                 }));
@@ -60,19 +60,18 @@ export default function Link() {
             setFilteredData(
                 data.filter(
                     (item) =>
-                        item.type?.toLowerCase().includes(lowerCaseQuery) ||
-                        item.schedule_day?.toLowerCase().includes(lowerCaseQuery) ||
-                        item.link?.toLowerCase().includes(lowerCaseQuery) ||
+                        item.clinician?.toLowerCase().includes(lowerCaseQuery) ||
+                        item.email?.toLowerCase().includes(lowerCaseQuery) ||
                         item.status?.toLowerCase().includes(lowerCaseQuery)
                 )
             );
         }
     }, [searchQuery, data]);
 
-        // Add link
+        // Add user
         async function createScheduleLink(e: any) {
             e.preventDefault();
-            if (!schedule || !link || !selectedStatus || !selectedType) {
+            if (!Clinician || !email || !selectedStatus) {
                 alert("Please fill all fields.");
                 return;
             }
@@ -80,59 +79,57 @@ export default function Link() {
                 // Use `get()` for a one-time fetch
                 const snapshot = await get(dbRef);
                 if (snapshot.exists()) {
-                    const existingLinks = Object.values(snapshot.val()).map((entry: any) => entry.link);
+                    const existingLinks = Object.values(snapshot.val()).map((entry: any) => entry.email);
                     console.log(existingLinks);
-                    if (existingLinks.includes(link)) {
-                        setErrorMessage("The link already exists. Please use a different link.");
+                    if (existingLinks.includes(email)) {
+                        setErrorMessage("The email already exists. Please use a different email.");
                         return;
                     }
                 }
-                // Add new entry if link is unique
+                // Add new entry if email is unique
                 const newLinkRef = push(dbRef); // Generate a unique ID
                 await set(newLinkRef, {
-                    type: selectedType,
-                    schedule_day: schedule,
-                    link: link,
+                    clinician: Clinician,
+                    email: email,
                     status: selectedStatus,
                 });
                 setModalOpen(false); // Close modal after submission
             } catch (error) {
-                console.error("Error adding link:", error);
+                console.error("Error adding user:", error);
             }
         }
 
-        // Update link
+        // Update user
         async function updateScheduleLink(e: any) {
             e.preventDefault();
-            if (!schedule || !link || !selectedStatus || !selectedType) {
+            if (!Clinician || !email || !selectedStatus ) {
                 alert("Please fill all fields.");
                 return;
             }
             try {
-                // Query the database to check if the link already exists, excluding the current entry
-                const linkQuery = ref(database, `links`);
+                // Query the database to check if the email already exists, excluding the current entry
+                const linkQuery = ref(database, `users`);
                 const snapshot = await get(linkQuery);
                 let linkExists = false;
 
                 snapshot.forEach((childSnapshot) => {
                     const data = childSnapshot.val();
-                    // Check if the link exists and the ID is not the same as the one being updated
-                    if (data.link === link && childSnapshot.key !== selectedId) {
+                    // Check if the email exists and the ID is not the same as the one being updated
+                    if (data.email === email && childSnapshot.key !== selectedId) {
                         linkExists = true;
                     }
                 });
 
                 if (linkExists) {
-                    setErrorMessage("The link already exists. Please use a different link.");
+                    setErrorMessage("The email already exists. Please use a different email.");
                     return;
                 }
 
-                // Proceed with the update if the link doesn't exist
-                const userRef = ref(database, `links/${selectedId}`);
+                // Proceed with the update if the email doesn't exist
+                const userRef = ref(database, `users/${selectedId}`);
                 await update(userRef, {
-                    type: selectedType,
-                    schedule_day: schedule,
-                    link: link, // Replace with updated link
+                    clinician: Clinician,
+                    email: email, // Replace with updated email
                     status: selectedStatus,
                 });
 
@@ -141,17 +138,17 @@ export default function Link() {
                 setUpdateModalOpen(false);
 
             } catch (error) {
-                console.error("Error updating link:", error);
+                console.error("Error updating user:", error);
             }
         }
 
-        // Delete link
+        // Delete user
         async function deleteScheduleLink(id: string) {
             try {
-                const linkRef = ref(database, `links/${id}`);
+                const linkRef = ref(database, `users/${id}`);
                 await remove(linkRef);
             } catch (error) {
-                console.error("Error removing link:", error);
+                console.error("Error removing user:", error);
             }
         }
 
@@ -165,22 +162,22 @@ export default function Link() {
         <div className="grid grid-rows-[20px_1fr_20px] justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
             <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
                 {/* Search Box */}
-                <div className="flex justify-between grid md:grid-cols-2 md:gap-2">
-                <input
-                    type="text"
-                    placeholder="Search..."
-                    className="p-2 border rounded-md w-full sm:full"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-
-                <button
-                    className=" w-full sm:w-1/2 px-3 py-2 text-xs font-medium text-center text-white bg-green-700 rounded-lg hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300"
-                    onClick={() => setModalOpen(true)}
-                >
-                    Add
-                </button>
-                </div>
+             <div className="flex justify-between grid md:grid-cols-2 md:gap-2">
+                    <input
+                        type="text"
+                        placeholder="Search..."
+                        className="p-2 border rounded-md w-full sm:full"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                
+                    <button
+                        className=" w-full sm:w-1/2 px-3 py-2 text-xs font-medium text-center text-white bg-green-700 rounded-lg hover:bg-green-800 focus:ring-4 focus:outline-none focus:ring-green-300"
+                        onClick={() => setModalOpen(true)}
+                    >
+                        Add
+                    </button>
+             </div>
 
                 {/* Table displaying the users */}
                 {loading ? (
@@ -190,36 +187,33 @@ export default function Link() {
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
                                 <th scope="col" className="px-6 py-3">#</th>
-                                <th scope="col" className="px-6 py-3">Type</th>
-                                <th scope="col" className="px-6 py-3">Schedule Day</th>
-                                <th scope="col" className="px-6 py-3">Link</th>
+                                <th scope="col" className="px-6 py-3">Clinician</th>
+                                <th scope="col" className="px-6 py-3">Email</th>
                                 <th scope="col" className="px-6 py-3">Status</th>
                                 <th scope="col" className="px-6 py-3">Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredData.map((link, index) => (
-                                <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700" key={link.id}>
+                            {filteredData.map((user, index) => (
+                                <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700" key={user.id}>
                                     <td className="px-6 py-4">{index + 1}</td>
-                                    <td className="px-6 py-4">{link.type}</td>
-                                    <td className="px-6 py-4">{link.schedule_day}</td>
-                                    <td className="px-6 py-4">{link.link}</td>
-                                    <td className="px-6 py-4">{link.status}</td>
+                                    <td className="px-6 py-4">{user.clinician}</td>
+                                    <td className="px-6 py-4">{user.email}</td>
+                                    <td className="px-6 py-4">{user.status}</td>
                                     <td className="px-6 py-4 flex gap-2">
                                         <button
                                             className="btn-green"
                                             onClick={() => {
-                                                setSelectedStatus(link.status);
-                                                setSelectedType(link.type);
-                                                setSchedule(link.schedule_day);
-                                                setLink(link.link);
+                                                setSchedule(user.clinician);
+                                                setLink(user.email);
+                                                setSelectedStatus(user.status);
                                                 setUpdateModalOpen(true);
-                                                setSelectedIdStatus(link.id);
+                                                setSelectedIdStatus(user.id);
                                             }}
                                         >
                                             Update
                                         </button>
-                                        <button className="btn-red" onClick={() => deleteScheduleLink(link.id)}>
+                                        <button className="btn-red" onClick={() => deleteScheduleLink(user.id)}>
                                             Remove
                                         </button>
                                     </td>
@@ -229,48 +223,35 @@ export default function Link() {
                     </table>
                 )}
 
-                {/* Add Modal */}
-                <Modal title="Add Schedule" isOpen={isModalOpen} onClose={handleCloseModal}>
-                    <form onSubmit={createScheduleLink}>
-                        <div className="grid md:grid-cols-2 md:gap-6">
-                            <SelectComponent
-                                options={[
-                                    { value: "Active", label: "Active" },
-                                    { value: "Deactivated", label: "Deactivated" },
-                                ]}
-                                placeholder="Select Status"
-                                label="Status"
-                                multiple={false} // Enable multiple selections
-                                onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
-                                value={selectedStatus} // Bind the state to the component
-                            />
 
-                            <SelectComponent
-                                options={[
-                                    { value: "Resto", label: "Resto" },
-                                    { value: "PROTHOS", label: "PROTHOS" },
-                                ]}
-                                placeholder="Select Form Type"
-                                label="Form Type"
-                                multiple={false} // Enable multiple selections
-                                onChange={(selectedValue) => setSelectedType(selectedValue)} // Update the state
-                                value={selectedType} // Bind the state to the component
-                            />
-                        </div>
+                {/* Add Modal */}
+                <Modal title="Add Clinician" isOpen={isModalOpen} onClose={handleCloseModal}>
+                    <form onSubmit={createScheduleLink}>
+                        <SelectComponent
+                            options={[
+                                { value: "Active", label: "Active" },
+                                { value: "Deactivated", label: "Deactivated" },
+                            ]}
+                            placeholder="Select Status"
+                            label="Status"
+                            multiple={false} // Enable multiple selections
+                            onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
+                            value={selectedStatus} // Bind the state to the component
+                        />
                         <FloatingInput
                             id="floating_last_name"
                             name="schedule_day"
                             label="Schedule Day and Time"
-                            value={schedule}
+                            value={Clinician}
                             onChange={(e) => setSchedule(e.target.value)}
                             required
                         />
                         <span className="text-red-600 text-sm">{errorMessage}</span>
                         <FloatingInput
                             id="floating_last_name"
-                            name="link"
+                            name="email"
                             label="Link"
-                            value={link}
+                            value={email}
                             onChange={(e) => setLink(e.target.value)}
                             required
                         />
@@ -284,36 +265,24 @@ export default function Link() {
                 </Modal>
 
                 {/* Update Modal */}
-                <Modal title="Update Schedule" isOpen={isUpdateModalOpen} onClose={handleCloseModal}>
+                <Modal title="Update Clinician" isOpen={isUpdateModalOpen} onClose={handleCloseModal}>
                     <form onSubmit={updateScheduleLink}>
-                        <div className="grid md:grid-cols-2 md:gap-6">
-                            <SelectComponent
-                                options={[
-                                    { value: "Active", label: "Active" },
-                                    { value: "Deactivated", label: "Deactivated" },
-                                ]}
-                                placeholder="Select "
-                                label="Status "
-                                value={selectedStatus} // Handle default value
-                                onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
-                            />
+                        <SelectComponent
+                            options={[
+                                { value: "Active", label: "Active" },
+                                { value: "Deactivated", label: "Deactivated" },
+                            ]}
+                            placeholder="Select "
+                            label="Status "
+                            value={selectedStatus} // Handle default value
+                            onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
+                        />
 
-                            <SelectComponent
-                                options={[
-                                    { value: "Resto", label: "Resto" },
-                                    { value: "PROTHOS", label: "PROTHOS" },
-                                ]}
-                                placeholder="Select From Type"
-                                label="Form Type"
-                                value={selectedType} // Handle default value
-                                onChange={(selectedValue) => setSelectedType(selectedValue)}
-                            />
-                        </div>
                         <FloatingInput
                             id="update_schedule_day"
                             name="schedule_day"
                             label="Schedule Day and Time"
-                            value={schedule}
+                            value={Clinician}
                             onChange={(e) => setSchedule(e.target.value)}
                             required
                         />
@@ -322,7 +291,7 @@ export default function Link() {
                             id="update_link"
                             name="Link"
                             label="Link"
-                            value={link}
+                            value={email}
                             onChange={(e) => setLink(e.target.value)}
                             required
                         />

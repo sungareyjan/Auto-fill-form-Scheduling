@@ -1,7 +1,7 @@
 "use client"; // If using the app directory in Next.js
 
 import React, { useEffect, useState } from "react";
-import { ref, set, push, onValue, update, remove } from "firebase/database";
+import { ref, set, get, push, onValue, update, remove, query, orderByChild, equalTo } from "firebase/database";
 import { database } from "../../firebase/config"; // Import your Firebase configuration
 import Modal from "../../component/modal";
 import SelectComponent from "../../component/SelectComponent";
@@ -13,20 +13,43 @@ interface DayAndTime {
 }
 
 export default function DayAndTime() {
-    const [data, setData] = useState<DayAndTime[]>([]); // Store fetched data
+    const [data, setData] = useState<DayAndTime[]>([]);                // Store fetched data
     const [loading, setLoading] = useState(true);
-    const [isModalOpen, setModalOpen] = useState(false); // For Add Modal
-    const [isUpdateModalOpen, setUpdateModalOpen] = useState(false); // For Update Modal
-    const [schedule, setSchedule] = useState(""); // Store schedule day and time
-    const [link, setLink] = useState(""); // Store link
+    const [isModalOpen, setModalOpen] = useState(false);                           // For Add Modal
+    const [isUpdateModalOpen, setUpdateModalOpen] = useState(false);                           // For Update Modal
+    const [schedule, setSchedule] = useState("");                              // Store schedule day and time
+    const [link, setLink] = useState("");                              // Store link
     const [selectedStatus, setSelectedStatus] = useState<string | string[] | null>(null);
     const [selectedType, setSelectedType] = useState<string | string[] | null>(null);
+    const [selectedId, setSelectedIdStatus] = useState();
+    const [errorMessage, setErrorMessage] = useState("");
+    const dbRef = ref(database, "day_and_time");
 
-    const [selectedId,setSelectedIdStatus] =useState();
     useEffect(() => {
-        const usersRef = ref(database, "day_and_time");
+        // Query to find entries where "status" equals "Active"
+        const queryRef = query(dbRef, orderByChild("status"), equalTo("Active"));
+        // Execute the query
+        get(queryRef)
+            .then((snapshot) => {
+                if (snapshot.exists()) {
+                    // Loop through the results
+                    snapshot.forEach((childSnapshot) => {
+                        const key = childSnapshot.key; // ID of the entry
+                        const data = childSnapshot.val(); // Data of the entry
+                        console.log(`Key: ${key}, Data:`, data);
+                    });
+                } else {
+                    console.log("No matching records found.");
+                }
+            })
+            .catch((error) => {
+                console.error("Error fetching data:", error);
+            });
+    }, []);
 
-        const unsubscribe = onValue(usersRef, (snapshot) => {
+    useEffect(() => {
+
+        const readData = onValue(dbRef, (snapshot) => {
             if (snapshot.exists()) {
                 const fetchedData = snapshot.val() as Record<string, any>; // Ensure type safety
                 const formattedData: DayAndTime[] = Object.entries(fetchedData).map(([id, value]) => ({
@@ -40,19 +63,29 @@ export default function DayAndTime() {
             setLoading(false);
         });
 
-        return () => unsubscribe();
+        return () => readData();
     }, []);
 
     // Add user
     async function createScheduleLink(e: any) {
         e.preventDefault();
-        if (!schedule) {
+        if (!schedule || !link || !selectedStatus || !selectedType) {
             alert("Please fill all fields.");
             return;
         }
         try {
-            const usersRef = ref(database, "day_and_time");
-            const newUserRef = push(usersRef); // Generate a unique ID
+            // Use `get()` for a one-time fetch
+            const snapshot = await get(dbRef);
+            if (snapshot.exists()) {
+                const existingLinks = Object.values(snapshot.val()).map((entry: any) => entry.link);
+                console.log(existingLinks);
+                if (existingLinks.includes(link)) {
+                    setErrorMessage("The link already exists. Please use a different link.");
+                    return;
+                }
+            }
+            // Add new entry if link is unique
+            const newUserRef = push(dbRef); // Generate a unique ID
             await set(newUserRef, {
                 type: selectedType,
                 schedule_day: schedule,
@@ -68,8 +101,30 @@ export default function DayAndTime() {
     // Update user
     async function updateScheduleLink(e: any) {
         e.preventDefault();
-        if (!selectedType) return;
+        if (!schedule || !link || !selectedStatus || !selectedType) {
+            alert("Please fill all fields.");
+            return;
+        }
         try {
+            // Query the database to check if the link already exists, excluding the current entry
+            const linkQuery = ref(database, `day_and_time`);
+            const snapshot = await get(linkQuery);
+            let linkExists = false;
+
+            snapshot.forEach((childSnapshot) => {
+                const data = childSnapshot.val();
+                // Check if the link exists and the ID is not the same as the one being updated
+                if (data.link === link && childSnapshot.key !== selectedId) {
+                    linkExists = true;
+                }
+            });
+
+            if (linkExists) {
+                setErrorMessage("The link already exists. Please use a different link.");
+                return;
+            }
+
+            // Proceed with the update if the link doesn't exist
             const userRef = ref(database, `day_and_time/${selectedId}`);
             await update(userRef, {
                 type: selectedType,
@@ -77,7 +132,11 @@ export default function DayAndTime() {
                 link: link, // Replace with updated link
                 status: selectedStatus,
             });
+
+            // Reset error message and close the modal
+            setErrorMessage(""); // Clear the error message
             setUpdateModalOpen(false); // Close modal after update
+
         } catch (error) {
             console.error("Error updating user:", error);
         }
@@ -92,6 +151,16 @@ export default function DayAndTime() {
             console.error("Error removing user:", error);
         }
     }
+
+    // Function to handle modal close
+    function handleCloseModal() {
+        setErrorMessage(""); // Clear the error message
+        setUpdateModalOpen(false); // Close the modal
+        setModalOpen(false);
+    }
+
+
+
 
     return (
         <div className="grid grid-rows-[20px_1fr_20px] justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
@@ -159,7 +228,7 @@ export default function DayAndTime() {
                 )}
 
                 {/* Add Modal */}
-                <Modal title="Add Schedule" isOpen={isModalOpen} onClose={() => setModalOpen(false)}>
+                <Modal title="Add Schedule" isOpen={isModalOpen} onClose={handleCloseModal}>
                     <form onSubmit={createScheduleLink}>
                         <div className="grid md:grid-cols-2 md:gap-6">
                             <SelectComponent
@@ -194,10 +263,11 @@ export default function DayAndTime() {
                             onChange={(e) => setSchedule(e.target.value)}
                             required
                         />
+                        <span className="text-red-600 text-sm">{errorMessage}</span>
                         <FloatingInput
                             id="floating_last_name"
-                            name="schedule_day"
-                            label="Schedule Day and Time"
+                            name="link"
+                            label="Link"
                             value={link}
                             onChange={(e) => setLink(e.target.value)}
                             required
@@ -212,31 +282,30 @@ export default function DayAndTime() {
                 </Modal>
 
                 {/* Update Modal */}
-                <Modal title="Update Schedule" isOpen={isUpdateModalOpen} onClose={() => setUpdateModalOpen(false)}>
+                <Modal title="Update Schedule" isOpen={isUpdateModalOpen} onClose={handleCloseModal}>
                     <form onSubmit={updateScheduleLink}>
-                    <div className="grid md:grid-cols-2 md:gap-6">
-                        <SelectComponent
-                            options={[
-                                { value: "Active", label: "Active" },
-                                { value: "Deactivated", label: "Deactivated" },
-                            ]}
-                            placeholder="Select "
-                            label="Status "
-                            value={selectedStatus} // Handle default value
-                            onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
-                                
-                        />
+                        <div className="grid md:grid-cols-2 md:gap-6">
+                            <SelectComponent
+                                options={[
+                                    { value: "Active", label: "Active" },
+                                    { value: "Deactivated", label: "Deactivated" },
+                                ]}
+                                placeholder="Select "
+                                label="Status "
+                                value={selectedStatus} // Handle default value
+                                onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
+                            />
 
-                        <SelectComponent
-                            options={[
-                                { value: "Resto", label: "Resto" },
-                                { value: "PROTHOS", label: "PROTHOS" },
-                            ]}
-                            placeholder="Select From Type"
-                            label="Form Type"
-                            value={selectedType} // Handle default value
-                            onChange={(selectedValue) => setSelectedType(selectedValue)} 
-                        />
+                            <SelectComponent
+                                options={[
+                                    { value: "Resto", label: "Resto" },
+                                    { value: "PROTHOS", label: "PROTHOS" },
+                                ]}
+                                placeholder="Select From Type"
+                                label="Form Type"
+                                value={selectedType} // Handle default value
+                                onChange={(selectedValue) => setSelectedType(selectedValue)}
+                            />
                         </div>
                         <FloatingInput
                             id="update_schedule_day"
@@ -246,11 +315,11 @@ export default function DayAndTime() {
                             onChange={(e) => setSchedule(e.target.value)}
                             required
                         />
-
+                        <span className="text-red-600 text-sm">{errorMessage}</span>
                         <FloatingInput
-                            id="update_schedule_day"
-                            name="schedule_day"
-                            label="Schedule Day and Time"
+                            id="update_link"
+                            name="Link"
+                            label="Link"
                             value={link}
                             onChange={(e) => setLink(e.target.value)}
                             required

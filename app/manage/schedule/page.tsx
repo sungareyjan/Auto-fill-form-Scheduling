@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import {  ref, set, push, onValue,  update, remove } from "firebase/database";
 import { database } from "../../firebase/config"; // Import your Firebase configuration
 import Modal from "../../component/modal";
-import SelectUser from "../../component/SelectComponent";
+import SelectComponent from "../../component/SelectComponent";
 
 interface Schedule {
     id: string;
@@ -20,6 +20,8 @@ export default function Schedule() {
     const [data, setData] = useState<Schedule[]>([]); // Store fetched data
     const [loading, setLoading] = useState(true);
 
+
+    const [selectedStatus, setSelectedStatus] = useState<string | string[] | null>(null);
     useEffect(() => {
         // Real-time listener to fetch data from the "users" node
         const usersRef = ref(database, "users");
@@ -83,7 +85,7 @@ export default function Schedule() {
 
     const [isModalOpen, setModalOpen] = useState(false);
 
-    const openModal = () => setModalOpen(true);
+    const openModal  = () => setModalOpen(true);
     const closeModal = () => setModalOpen(false);
 
     let count = 1;
@@ -178,37 +180,29 @@ export default function Schedule() {
 
                 <Modal title={'Add For Schedule'} isOpen={isModalOpen} onClose={closeModal}>
                     <form className="max-w-md mx-auto">
-                    <div className="relative  w-full mb-5 group bg-black ">
-                        <SelectUser
-                                options={[
-                                    { value: 'john.doe@example.com', label: 'john.doe@example.com' },
-                                    { value: 'ohn.doe@example.com', label: 'ohn.doe@example.com' },
-                                    ]}
-                                    placeholder={'Select Email'}
-                                    label ={'Email'}
-                            />
-                        </div>
 
-                        <div className="relative  w-full mb-5 group bg-black ">
-                            <SelectUser
-                                options={[
-                                    { value: 'Resto', label: 'Resto' },
+                        <SelectComponent
+                            options={[
+                                { value: 'Monday AM', label: 'Monday AM' },
+                                { value: 'TUESDAY AM', label: 'TUESDAY AM' },
+                                ]}
+                                placeholder="Select Day and Time"
+                                label="Day and Time"
+                                multiple={true} // Enable multiple selections
+                                onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
+                                value={selectedStatus} // Bind the state to the component
+                            />
+                        <SelectComponent
+                            options={[
+                                { value: 'Resto', label: 'Resto' },
                                     { value: 'PROSTHO', label: 'PROSTHO' },
-                                    ]}
-                                    placeholder={'Select Type'}
-                                    label ={'Form Type'}
+                                ]}
+                                placeholder="Select Email"
+                                label="Email"
+                                multiple={false} // Enable multiple selections
+                                onChange={(selectedValue) => setSelectedStatus(selectedValue)} // Update the state
+                                value={selectedStatus} // Bind the state to the component
                             />
-                        </div>
-                        <div className="relative z-0 w-full mb-5 group">
-                            <SelectUser
-                                options={[
-                                    { value: 'Monday AM', label: 'Monday AM' },
-                                    { value: 'TUESDAY AM', label: 'TUESDAY AM' },
-                                    ]}
-                                    placeholder={'Select Schedule day and time'}
-                                    label ={'Form Type Schedule day and time'}
-                            />
-                        </div>
 
                         <div className="relative z-0 w-full mb-5 group">
                             <input type="text" name="floating_last_name" id="floating_last_name" className="input-text peer" placeholder=" " disabled />
@@ -232,26 +226,26 @@ export default function Schedule() {
                         </div>
 
                         {/* <div className="relative z-0 w-full mb-5 group">
-                    <input type="password" name="floating_password" id="floating_password" className="input-password peer" placeholder=" " required />
-                    <label htmlFor="floating_password" className="label-password">Password</label>
-                </div>
-                <div className="relative z-0 w-full mb-5 group">
-                    <input type="password" name="repeat_password" id="floating_repeat_password" className="input-password peer" placeholder=" " required />
-                    <label htmlFor="floating_repeat_password" className="label-password">Confirm password</label>
-                </div>
-                <div className="grid md:grid-cols-2 md:gap-6">
-                    <div className="relative z-0 w-full mb-5 group">
-                        <input type="tel" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" name="floating_phone" id="floating_phone" className="input-phone peer" placeholder=" " required />
-                        <label htmlFor="floating_phone" className="label-phone">Phone number (123-456-7890)</label>
-                    </div>
-                    <div className="relative z-0 w-full mb-5 group">
-                        <input type="text" name="floating_company" id="floating_company" className="input-text peer" placeholder=" " required />
-                        <label htmlFor="floating_company" className="label-text">Company (Ex. Google)</label>
-                    </div>
-                </div> */}
-                <div className="flex justify-center">
-                        <button type="submit" className="btn-green flex " onClick={createUser}>Submit</button>
-                </div>
+                            <input type="password" name="floating_password" id="floating_password" className="input-password peer" placeholder=" " required />
+                            <label htmlFor="floating_password" className="label-password">Password</label>
+                        </div>
+                        <div className="relative z-0 w-full mb-5 group">
+                            <input type="password" name="repeat_password" id="floating_repeat_password" className="input-password peer" placeholder=" " required />
+                            <label htmlFor="floating_repeat_password" className="label-password">Confirm password</label>
+                        </div>
+                        <div className="grid md:grid-cols-2 md:gap-6">
+                            <div className="relative z-0 w-full mb-5 group">
+                                <input type="tel" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" name="floating_phone" id="floating_phone" className="input-phone peer" placeholder=" " required />
+                                <label htmlFor="floating_phone" className="label-phone">Phone number (123-456-7890)</label>
+                            </div>
+                            <div className="relative z-0 w-full mb-5 group">
+                                <input type="text" name="floating_company" id="floating_company" className="input-text peer" placeholder=" " required />
+                                <label htmlFor="floating_company" className="label-text">Company (Ex. Google)</label>
+                            </div>
+                        </div> */}
+                        <div className="flex justify-center">
+                                <button type="submit" className="btn-green flex " onClick={createUser}>Submit</button>
+                        </div>
                     </form>
                 </Modal>
             </main>
