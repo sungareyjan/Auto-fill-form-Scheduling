@@ -28,7 +28,7 @@ export default function Users() {
     const [selectedId, setSelectedIdStatus] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
 
-    const dbRef = ref(database, "users");
+    const dbRef = ref(database, "clinician");
 
 
     useEffect(() => {
@@ -94,12 +94,15 @@ export default function Users() {
                     status: selectedStatus,
                 });
                 setModalOpen(false); // Close modal after submission
+                setSchedule("");
+                setLink("");
+                setSelectedStatus("");
             } catch (error) {
-                console.error("Error adding user:", error);
+                console.error("Error adding clinician:", error);
             }
         }
 
-        // Update user
+        // Update clinician
         async function updateScheduleLink(e: any) {
             e.preventDefault();
             if (!Clinician || !email || !selectedStatus ) {
@@ -108,7 +111,7 @@ export default function Users() {
             }
             try {
                 // Query the database to check if the email already exists, excluding the current entry
-                const linkQuery = ref(database, `users`);
+                const linkQuery = ref(database, `clinician`);
                 const snapshot = await get(linkQuery);
                 let linkExists = false;
 
@@ -126,7 +129,7 @@ export default function Users() {
                 }
 
                 // Proceed with the update if the email doesn't exist
-                const userRef = ref(database, `users/${selectedId}`);
+                const userRef = ref(database, `clinician/${selectedId}`);
                 await update(userRef, {
                     clinician: Clinician,
                     email: email, // Replace with updated email
@@ -142,13 +145,13 @@ export default function Users() {
             }
         }
 
-        // Delete user
+        // Delete clinician
         async function deleteScheduleLink(id: string) {
             try {
-                const linkRef = ref(database, `users/${id}`);
+                const linkRef = ref(database, `clinician/${id}`);
                 await remove(linkRef);
             } catch (error) {
-                console.error("Error removing user:", error);
+                console.error("Error removing clinician:", error);
             }
         }
 
@@ -162,7 +165,8 @@ export default function Users() {
         <div className="grid grid-rows-[20px_1fr_20px] justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
             <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
                 {/* Search Box */}
-             <div className="flex justify-between grid md:grid-cols-2 md:gap-2">
+
+            <div className="flex justify-between grid md:grid-cols-2 md:gap-2">
                     <input
                         type="text"
                         placeholder="Search..."
@@ -177,9 +181,9 @@ export default function Users() {
                     >
                         Add
                     </button>
-             </div>
+            </div>
 
-                {/* Table displaying the users */}
+                {/* Table displaying the clinician */}
                 {loading ? (
                     <div className="text-white">Loading...</div>
                 ) : (
@@ -211,10 +215,14 @@ export default function Users() {
                                                 setSelectedIdStatus(user.id);
                                             }}
                                         >
-                                            Update
+                                             <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.779 17.779 4.36 19.918 6.5 13.5m4.279 4.279 8.364-8.643a3.027 3.027 0 0 0-2.14-5.165 3.03 3.03 0 0 0-2.14.886L6.5 13.5m4.279 4.279L6.499 13.5m2.14 2.14 6.213-6.504M12.75 7.04 17 11.28" />
+                                        </svg>
                                         </button>
                                         <button className="btn-red" onClick={() => deleteScheduleLink(user.id)}>
-                                            Remove
+                                        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z" />
+                                        </svg>
                                         </button>
                                     </td>
                                 </tr>
@@ -240,8 +248,8 @@ export default function Users() {
                         />
                         <FloatingInput
                             id="floating_last_name"
-                            name="schedule_day"
-                            label="Schedule Day and Time"
+                            name="clinician"
+                            label="Clinician"
                             value={Clinician}
                             onChange={(e) => setSchedule(e.target.value)}
                             required
@@ -250,7 +258,7 @@ export default function Users() {
                         <FloatingInput
                             id="floating_last_name"
                             name="email"
-                            label="Link"
+                            label="Email"
                             value={email}
                             onChange={(e) => setLink(e.target.value)}
                             required
@@ -280,8 +288,8 @@ export default function Users() {
 
                         <FloatingInput
                             id="update_schedule_day"
-                            name="schedule_day"
-                            label="Schedule Day and Time"
+                            name="clinician"
+                            label="Clinician"
                             value={Clinician}
                             onChange={(e) => setSchedule(e.target.value)}
                             required
@@ -289,8 +297,8 @@ export default function Users() {
                         <span className="text-red-600 text-sm">{errorMessage}</span>
                         <FloatingInput
                             id="update_link"
-                            name="Link"
-                            label="Link"
+                            name="email"
+                            label="Email"
                             value={email}
                             onChange={(e) => setLink(e.target.value)}
                             required

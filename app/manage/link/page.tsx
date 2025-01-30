@@ -13,23 +13,21 @@ interface Link {
 }
 
 export default function Link() {
-    const [data, setData] = useState<Link[]>([]); // Store fetched data
-    const [filteredData, setFilteredData] = useState<Link[]>([]); // Store filtered data for the search
+    const [data, setData] = useState<Link[]>([]); 
+    const [filteredData, setFilteredData] = useState<Link[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchQuery, setSearchQuery] = useState(""); // Search query state
+    const [searchQuery, setSearchQuery] = useState("");
 
-    const [isModalOpen, setModalOpen] = useState(false); // For Add Modal
-    const [isUpdateModalOpen, setUpdateModalOpen] = useState(false); // For Update Modal
-    const [schedule, setSchedule] = useState(""); // Store schedule day and time
-    const [link, setLink] = useState(""); // Store link
+    const [isModalOpen, setModalOpen] = useState(false);
+    const [isUpdateModalOpen, setUpdateModalOpen] = useState(false);
+    const [schedule, setSchedule] = useState("");
+    const [link, setLink] = useState("");
     const [selectedStatus, setSelectedStatus] = useState<string | string[] | null>(null);
     const [selectedType, setSelectedType] = useState<string | string[] | null>(null);
 
     const [selectedId, setSelectedIdStatus] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
-
     const dbRef = ref(database, "links");
-
 
     useEffect(() => {
         const readData = onValue(dbRef, (snapshot) => {
@@ -40,7 +38,7 @@ export default function Link() {
                     ...value,
                 }));
                 setData(formattedData);
-                setFilteredData(formattedData); // Initialize filtered data with all records
+                setFilteredData(formattedData);
             } else {
                 setData([]);
                 setFilteredData([]);
@@ -54,7 +52,7 @@ export default function Link() {
     // Handle search functionality
     useEffect(() => {
         if (searchQuery.trim() === "") {
-            setFilteredData(data); // If no search query, show all data
+            setFilteredData(data);
         } else {
             const lowerCaseQuery = searchQuery.toLowerCase();
             setFilteredData(
@@ -69,98 +67,104 @@ export default function Link() {
         }
     }, [searchQuery, data]);
 
-        // Add link
-        async function createScheduleLink(e: any) {
-            e.preventDefault();
-            if (!schedule || !link || !selectedStatus || !selectedType) {
-                alert("Please fill all fields.");
-                return;
-            }
-            try {
-                // Use `get()` for a one-time fetch
-                const snapshot = await get(dbRef);
-                if (snapshot.exists()) {
-                    const existingLinks = Object.values(snapshot.val()).map((entry: any) => entry.link);
-                    console.log(existingLinks);
-                    if (existingLinks.includes(link)) {
-                        setErrorMessage("The link already exists. Please use a different link.");
-                        return;
-                    }
-                }
-                // Add new entry if link is unique
-                const newLinkRef = push(dbRef); // Generate a unique ID
-                await set(newLinkRef, {
-                    type: selectedType,
-                    schedule_day: schedule,
-                    link: link,
-                    status: selectedStatus,
-                });
-                setModalOpen(false); // Close modal after submission
-            } catch (error) {
-                console.error("Error adding link:", error);
-            }
+    // Add link
+    async function createScheduleLink(e: any) {
+        e.preventDefault();
+        if (!schedule || !link || !selectedStatus || !selectedType) {
+            alert("Please fill all fields.");
+            return;
         }
-
-        // Update link
-        async function updateScheduleLink(e: any) {
-            e.preventDefault();
-            if (!schedule || !link || !selectedStatus || !selectedType) {
-                alert("Please fill all fields.");
-                return;
-            }
-            try {
-                // Query the database to check if the link already exists, excluding the current entry
-                const linkQuery = ref(database, `links`);
-                const snapshot = await get(linkQuery);
-                let linkExists = false;
-
-                snapshot.forEach((childSnapshot) => {
-                    const data = childSnapshot.val();
-                    // Check if the link exists and the ID is not the same as the one being updated
-                    if (data.link === link && childSnapshot.key !== selectedId) {
-                        linkExists = true;
-                    }
-                });
-
-                if (linkExists) {
+        try {
+            const snapshot = await get(dbRef);
+            if (snapshot.exists()) {
+                const existingLinks = Object.values(snapshot.val()).map((entry: any) => entry.link);
+                console.log(existingLinks);
+                if (existingLinks.includes(link)) {
                     setErrorMessage("The link already exists. Please use a different link.");
                     return;
                 }
-
-                // Proceed with the update if the link doesn't exist
-                const userRef = ref(database, `links/${selectedId}`);
-                await update(userRef, {
-                    type: selectedType,
-                    schedule_day: schedule,
-                    link: link, // Replace with updated link
-                    status: selectedStatus,
-                });
-
-                // Reset error message and close the modal
-                setErrorMessage("");
-                setUpdateModalOpen(false);
-
-            } catch (error) {
-                console.error("Error updating link:", error);
             }
-        }
-
-        // Delete link
-        async function deleteScheduleLink(id: string) {
-            try {
-                const linkRef = ref(database, `links/${id}`);
-                await remove(linkRef);
-            } catch (error) {
-                console.error("Error removing link:", error);
-            }
-        }
-
-        // Function to handle modal close
-        function handleCloseModal() {
-            setErrorMessage(""); // Clear the error message
-            setUpdateModalOpen(false); // Close the modal
+            const newLinkRef = push(dbRef); // Generate a unique ID
+            await set(newLinkRef, {
+                type: selectedType,
+                schedule_day: schedule,
+                link: link,
+                status: selectedStatus,
+            });
             setModalOpen(false);
+            setSelectedType("");
+            setSchedule("");
+            setLink("");
+            setSelectedStatus("");
+        } catch (error) {
+            console.error("Error adding link:", error);
         }
+    }
+
+    // Update link
+    async function updateScheduleLink(e: any) {
+        e.preventDefault();
+        if (!schedule || !link || !selectedStatus || !selectedType) {
+            alert("Please fill all fields.");
+            return;
+        }
+        try {
+            const linkQuery = ref(database, `links`);
+            const snapshot = await get(linkQuery);
+            let linkExists = false;
+
+            snapshot.forEach((childSnapshot) => {
+                const data = childSnapshot.val();
+                if (data.link === link && childSnapshot.key !== selectedId) {
+                    linkExists = true;
+                }
+            });
+
+            if (linkExists) {
+                setErrorMessage("The link already exists. Please use a different link.");
+                return;
+            }
+
+            const userRef = ref(database, `links/${selectedId}`);
+            await update(userRef, {
+                type: selectedType,
+                schedule_day: schedule,
+                link: link,
+                status: selectedStatus,
+            });
+
+            setErrorMessage("");
+            setUpdateModalOpen(false);
+            setSelectedType("");
+            setSchedule("");
+            setLink("");
+            setSelectedStatus("");
+
+        } catch (error) {
+            console.error("Error updating link:", error);
+        }
+    }
+
+    // Delete link
+    async function deleteScheduleLink(id: string) {
+        try {
+            const linkRef = ref(database, `links/${id}`);
+            await remove(linkRef);
+        } catch (error) {
+            console.error("Error removing link:", error);
+        }
+    }
+
+    // Function to handle modal close
+    function handleCloseModal() {
+        setErrorMessage("");
+        setUpdateModalOpen(false);
+        setModalOpen(false);
+        setSelectedType("");
+        setSchedule("");
+        setLink("");
+        setSelectedStatus("");
+    }
     return (
         <div className="grid grid-rows-[20px_1fr_20px] justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
             <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
@@ -186,7 +190,7 @@ export default function Link() {
                 {loading ? (
                     <div className="text-white">Loading...</div>
                 ) : (
-                    <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <table className="w-full text-sm  text-left rtl:text-right text-gray-500 dark:text-gray-400">
                         <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
                                 <th scope="col" className="px-6 py-3">#</th>
@@ -200,9 +204,9 @@ export default function Link() {
                         <tbody>
                             {filteredData.map((link, index) => (
                                 <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700" key={link.id}>
-                                    <td className="px-6 py-4">{index + 1}</td>
+                                    <td className="px-6 py-4 ">{index + 1}</td>
                                     <td className="px-6 py-4">{link.type}</td>
-                                    <td className="px-6 py-4">{link.schedule_day}</td>
+                                    <td className="px-6 py-4 break-words whitespace-normal">{link.schedule_day}</td>
                                     <td className="px-6 py-4">{link.link}</td>
                                     <td className="px-6 py-4">{link.status}</td>
                                     <td className="px-6 py-4 flex gap-2">
@@ -217,10 +221,14 @@ export default function Link() {
                                                 setSelectedIdStatus(link.id);
                                             }}
                                         >
-                                            Update
+                                        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                            <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.779 17.779 4.36 19.918 6.5 13.5m4.279 4.279 8.364-8.643a3.027 3.027 0 0 0-2.14-5.165 3.03 3.03 0 0 0-2.14.886L6.5 13.5m4.279 4.279L6.499 13.5m2.14 2.14 6.213-6.504M12.75 7.04 17 11.28" />
+                                        </svg>
                                         </button>
                                         <button className="btn-red" onClick={() => deleteScheduleLink(link.id)}>
-                                            Remove
+                                        <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z" />
+                                        </svg>
                                         </button>
                                     </td>
                                 </tr>
@@ -248,7 +256,7 @@ export default function Link() {
                             <SelectComponent
                                 options={[
                                     { value: "Resto", label: "Resto" },
-                                    { value: "PROTHOS", label: "PROTHOS" },
+                                    { value: "PROSTHO", label: "PROSTHO" },
                                 ]}
                                 placeholder="Select Form Type"
                                 label="Form Type"
@@ -301,7 +309,7 @@ export default function Link() {
                             <SelectComponent
                                 options={[
                                     { value: "Resto", label: "Resto" },
-                                    { value: "PROTHOS", label: "PROTHOS" },
+                                    { value: "PROSTHO", label: "PROSTHO" },
                                 ]}
                                 placeholder="Select From Type"
                                 label="Form Type"

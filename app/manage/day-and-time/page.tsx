@@ -246,7 +246,7 @@ export default function DayAndTime() {
                             <SelectComponent
                                 options={[
                                     { value: "Resto", label: "Resto" },
-                                    { value: "PROTHOS", label: "PROTHOS" },
+                                    { value: "PROSTHO", label: "PROSTHO" },
                                 ]}
                                 placeholder="Select Form Type"
                                 label="Form Type"
@@ -299,7 +299,7 @@ export default function DayAndTime() {
                             <SelectComponent
                                 options={[
                                     { value: "Resto", label: "Resto" },
-                                    { value: "PROTHOS", label: "PROTHOS" },
+                                    { value: "PROSTHO", label: "PROSTHO" },
                                 ]}
                                 placeholder="Select From Type"
                                 label="Form Type"
